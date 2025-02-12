@@ -16,12 +16,18 @@ void parse() {
             }
 
             Token assignToken = getNextToken();
-            if (assignToken.type != TOKEN_NUMBER) {
+            if (assignToken.type != TOKEN_OF) {
+                printf("Parser error: Expected 'of' keyword.\n");
+                exit(1);
+            }
+
+            Token numToken = getNextToken();
+            if (numToken.type != TOKEN_NUMBER) {
                 printf("Parser error: Expected a number.\n");
                 exit(1);
             }
 
-            addVariable(varToken.value, atoi(assignToken.value));
+            addVariable(varToken.value, atoi(numToken.value));
 
             Token semicolon = getNextToken();
             if (semicolon.type != TOKEN_SEMICOLON) {
