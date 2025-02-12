@@ -1,0 +1,3 @@
+/home/victor-epc/CLionProjects/gow-compiler/cmake-build-debug/CMakeFiles/gow_compiler.dir
+/home/victor-epc/CLionProjects/gow-compiler/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/victor-epc/CLionProjects/gow-compiler/cmake-build-debug/CMakeFiles/rebuild_cache.dir
