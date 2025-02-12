@@ -22,20 +22,36 @@ Token getNextToken() {
         return token;
     }
 
+    if (strncmp(src + pos, "i am the", 8) == 0) {
+        token.type = TOKEN_ASSIGN;
+        pos += 8;
+        return token;
+    }
+
+    if (strncmp(src + pos, "of", 2) == 0) {
+        token.type = TOKEN_OF;
+        pos += 2;
+        return token;
+    }
+
+    if (strncmp(src + pos, "face me", 7) == 0) {
+        token.type = TOKEN_PRINT;
+        pos += 7;
+        return token;
+    }
+
+    // Busca palavras (identificadores)
     if (isalpha(src[pos])) {
         int start = pos;
         while (isalnum(src[pos])) pos++;
         int length = pos - start;
         strncpy(token.value, src + start, length);
         token.value[length] = '\0';
-
-        if (strcmp(token.value, "i") == 0) token.type = TOKEN_ASSIGN;
-        else if (strcmp(token.value, "face") == 0) token.type = TOKEN_PRINT;
-        else token.type = TOKEN_IDENTIFIER;
-
+        token.type = TOKEN_IDENTIFIER;
         return token;
     }
 
+    // Busca números
     if (isdigit(src[pos])) {
         int start = pos;
         while (isdigit(src[pos])) pos++;
