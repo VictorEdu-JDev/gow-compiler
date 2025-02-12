@@ -10,7 +10,8 @@ typedef enum {
     TOKEN_SEMICOLON,
     TOKEN_LPAREN,
     TOKEN_RPAREN,
-    TOKEN_EOF
+    TOKEN_EOF,
+    TOKEN_OF
 } TokenType;
 
 typedef struct {
