@@ -39,7 +39,8 @@ const char *keywordStrings[] = {
     "no",                   // KEYWORD_FALSE
     "hyperion ram",         // KEYWORD_WHILE
     "spartan charge",       // KEYWORD_DO_WHILE
-    "rapid switch"          // KEYWORD_CASE
+    "rapid switch",         // KEYWORD_SWITCH
+    "destiny"               // KEYWORD_CASE
 };
 
 enum operator_type {
@@ -119,17 +120,19 @@ Token getNextToken() {
     token.type = TOKEN_EOF;
     token.value[0] = '\0';
 
-    skipWhitespace();
-    skipComments();
+    while (src[pos] != '\0') {
+        skipWhitespace();
+        skipComments();
 
-    if (matchKeyword(&token)) return token;
-    if (matchIdentifier(&token)) return token;
+        if (matchKeyword(&token)) return token;
+        if (matchIdentifier(&token)) return token;
 
-    if (matchNumber(&token)) return token;
-    if (matchString(&token)) return token;
-    if (matchBoolean(&token)) return token;
+        if (matchNumber(&token)) return token;
+        if (matchString(&token)) return token;
+        if (matchBoolean(&token)) return token;
 
-    handleSpecialCharacter(src[pos], &token, &pos);
+        handleSpecialCharacter(src[pos], &token, &pos);
+    }
     return token;
 }
 
@@ -156,12 +159,23 @@ int matchKeyword(Token *token) {
 }
 
 int matchIdentifier(Token *token) {
+    if (pos >= strlen(src)) return 0;
+
     if (isalpha(src[pos]) || src[pos] == '_') {
         const int start = pos;
-        while (isalnum(src[pos]) || src[pos] == '_') {
+
+        while (pos < strlen(src) &&
+               (isalnum(src[pos]) ||
+                src[pos] == '_')) {
             pos++;
-        }
+                }
+
         const int length = pos - start;
+        if (length >= sizeof(token->value)) {
+            printf("Comprimento de identificador superior ao limite de 255 caracteres.\n");
+            return 0;
+        }
+
         strncpy(token->value, src + start, length);
         token->value[length] = '\0';
         token->type = TOKEN_IDENTIFIER;
@@ -169,6 +183,7 @@ int matchIdentifier(Token *token) {
     }
     return 0;
 }
+
 
 
 int matchInteger(Token *token) {
@@ -280,6 +295,7 @@ void handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
         break;
         default:
             printf("Lexer error: Unknown character '%c'\n", currentChar);
+            exit(1);
         break;
     }
     (*pos)++;
