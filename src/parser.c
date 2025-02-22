@@ -1,70 +1,111 @@
-#include "../interfaces/parser.h"
-#include "../interfaces/lexer.h"
-#include "../interfaces/interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "lexer.h"
+#include "parser.h"
 
-void parse() {
+typedef enum node_type {
+    NODE_FUNCTION,
+    NODE_CALL,
+    NODE_IDENTIFIER,
+    NODE_OPERATOR,
+    NODE_LITERAL,
+    NODE_TYPE_COUNT
+} NodeType;
+
+typedef struct ast_node {
+    NodeType type;
+    char value[256];
+    struct ast_node *left;
+    struct ast_node *right;
+} Node;
+
+Node* newAstNode(NodeType type, const char *value) {
+    Node *node = (Node*)malloc(sizeof(Node));
+    node->type = type;
+    strncpy(node->value, value, 255);
+    node->left = NULL;
+    node->right = NULL;
+    return node;
+}
+
+void freeAstNode(Node* node) {
+    if (node == NULL) return;
+    freeAstNode(node->left);
+    freeAstNode(node->right);
+    free(node);
+}
+
+Node* parseFunctionDeclaration() {
     Token token = getNextToken();
 
-    while (token.type != TOKEN_EOF) {
-        if (token.type == TOKEN_ASSIGN) {
-            Token varToken = getNextToken();
-            if (varToken.type != TOKEN_IDENTIFIER) {
-                printf("Parser error: Expected variable name.\n");
-                exit(1);
-            }
+    if (token.type != TOKEN_IDENTIFIER || strcmp(token.value, "runic") != 0) {
+        return NULL;
+    }
 
-            Token assignToken = getNextToken();
-            if (assignToken.type != TOKEN_OF) {
-                printf("Parser error: Expected 'of' keyword.\n");
-                exit(1);
-            }
+    Token funcNameToken = getNextToken();
+    if (funcNameToken.type != TOKEN_IDENTIFIER) {
+        return NULL;
+    }
 
-            Token numToken = getNextToken();
-            if (numToken.type != TOKEN_NUMBER) {
-                printf("Parser error: Expected a number.\n");
-                exit(1);
-            }
+    Node* functionNode = newAstNode(NODE_FUNCTION, funcNameToken.value);
 
-            addVariable(varToken.value, atoi(numToken.value));
+    token = getNextToken();
 
-            Token semicolon = getNextToken();
-            if (semicolon.type != TOKEN_SEMICOLON) {
-                printf("Parser error: Expected ';' at end of statement.\n");
-                exit(1);
-            }
-        } else if (token.type == TOKEN_PRINT) {
-            Token lparen = getNextToken();
-            if (lparen.type != TOKEN_LPAREN) {
-                printf("Parser error: Expected '('.\n");
-                exit(1);
-            }
+    if (token.type != TOKEN_LBRACE) {
+        return NULL;
+    }
 
-            Token varToken = getNextToken();
-            if (varToken.type != TOKEN_IDENTIFIER) {
-                printf("Parser error: Expected variable name.\n");
-                exit(1);
-            }
-
-            Token rparen = getNextToken();
-            if (rparen.type != TOKEN_RPAREN) {
-                printf("Parser error: Expected ')'.\n");
-                exit(1);
-            }
-
-            printVariable(varToken.value);
-
-            Token semicolon = getNextToken();
-            if (semicolon.type != TOKEN_SEMICOLON) {
-                printf("Parser error: Expected ';' at end of statement.\n");
-                exit(1);
-            }
-        } else {
-            printf("Parser error: Unexpected token '%s'.\n", token.value);
-            exit(1);
-        }
-
+    token = getNextToken();
+    while (token.type != TOKEN_RBRACE) {
         token = getNextToken();
     }
+
+    return functionNode;
+}
+
+Node* parseFunctionReturn() {
+    Token token = getNextToken();
+    if (token.type != TOKEN_IDENTIFIER || strcmp(token.value, "redemption") != 0) {
+        return NULL;
+    }
+
+    Token returnValueToken = getNextToken();
+    if (returnValueToken.type != TOKEN_NUMBER) {
+        return NULL;
+    }
+
+    Node* returnNode = newAstNode(NODE_OPERATOR, returnValueToken.value);
+    return returnNode;
+}
+
+void parse() {
+    while (1) {
+        Token token = getNextToken();
+        if (token.type == TOKEN_EOF) break;
+
+        Node* funcDecl = parseFunctionDeclaration();
+
+        if (funcDecl != NULL) {
+            printf("Função declarada: %s\n", funcDecl->value);
+            freeAstNode(funcDecl);
+            continue;
+        }
+
+        Node* funcReturn = parseFunctionReturn();
+        if (funcReturn != NULL) {
+            printf("Liberou memoria.\n");
+            printf("Retorno: %s\n", funcReturn->value);
+            freeAstNode(funcReturn);
+            continue;
+        }
+
+    }
+}
+
+int main() {
+    const char* sourceCode = "runic main { redemption 0; }";
+    initLexer(sourceCode);
+    parse();
+    return 0;
 }
