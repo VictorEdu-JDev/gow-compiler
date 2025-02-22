@@ -4,68 +4,107 @@
 #include <stdlib.h>
 #include "../interfaces/lexer.h"
 
-enum token_type {
-    TOKEN_FUNCTION,
-    TOKEN_RETURN,
-    TOKEN_CALL,
-    TOKEN_IDENTIFIER,
-    TOKEN_ASSIGN,
-    TOKEN_COMMA,
-    TOKEN_SEMICOLON,
-    TOKEN_EOF,
-    TOKEN_LBRACE,
-    TOKEN_RBRACE,
-    TOKEN_STRING,
-    TOKEN_NUMBER,
-    TOKEN_FLOAT,
-    TOKEN_DOUBLE,
-    TOKEN_BOOLEAN
-};
-
 enum keyword {
-    KEYWORD_FUNCTION = "runic",
-    KEYWORD_RETURN = "redemption",
-    KEYWORD_CALL = "revenge",
-    KEYWORD_FOR = "cyclone of chaos",
-    KEYWORD_BREAK = "the cycle ends here",
-    KEYWORD_ASSIGN = "i am the",
-    KEYWORD_OF = "of",
+    KEYWORD_FUNCTION,
+    KEYWORD_RETURN,
+    KEYWORD_CALL,
+    KEYWORD_FOR,
+    KEYWORD_BREAK,
+    KEYWORD_ASSIGN,
+    KEYWORD_OF,
+    KEYWORD_IF,
+    KEYWORD_ELSE,
+    KEYWORD_ELSEIF,
+    KEYWORD_TRUE,
+    KEYWORD_FALSE,
+    KEYWORD_WHILE,
+    KEYWORD_DO_WHILE,
+    KEYWORD_SWITCH,
+    KEYWORD_CASE,
+    KEYWORD_COUNT
 };
 
-enum logical_operator {
-    LO_EQUAL = "olympic ascension",
-    LO_NOTEQUAL = "olympic fury",
-    LO_GREATER = "rage of sparta",
-    LO_GREATEREQUAL = "rage of the gods",
-    LO_LESS = "blade of olympus",
-    LO_LESSEQUAL = "blade of chaos"
+const char *keywordStrings[] = {
+    "runic",                // KEYWORD_FUNCTION
+    "redemption",           // KEYWORD_RETURN
+    "revenge",              // KEYWORD_CALL
+    "cyclone of chaos",     // KEYWORD_FOR
+    "the cycle ends here",  // KEYWORD_BREAK
+    "i am the",             // KEYWORD_ASSIGN
+    "of",                   // KEYWORD_OF
+    "trial",                // KEYWORD_IF
+    "fate",                 // KEYWORD_ELSE
+    "fate else",            // KEYWORD_ELSEIF
+    "yes",                  // KEYWORD_TRUE
+    "no",                   // KEYWORD_FALSE
+    "hyperion ram",         // KEYWORD_WHILE
+    "spartan charge",       // KEYWORD_DO_WHILE
+    "rapid switch"          // KEYWORD_CASE
 };
 
-enum arithmetic_operator {
-    AO_ADD = "ascend",
-    AO_MINUS = "fall",
-    AO_TIMES = "wrath",
-    AO_DIVIDE = "betrayal",
-    AO_MODULUS = "remains",
-    LO_PLUS_PLUS = "power up",
-    LO_MINUS_MINUS = "power down",
+enum operator_type {
+    LO_EQUAL,
+    LO_NOTEQUAL,
+    LO_GREATER,
+    LO_GREATEREQUAL,
+    LO_LESS,
+    LO_LESSEQUAL,
+    LO_AND,
+    LO_OR,
+    LO_XOR,
+    AO_ADD,
+    AO_MINUS,
+    AO_TIMES,
+    AO_DIVIDE,
+    AO_MODULUS,
+    AO_PLUS_PLUS,
+    AO_MINUS_MINUS,
+    OPERATOR_COUNT
 };
 
-struct token {
-    TokenType type;
-    char value[50];
+struct operator {
+    OperatorType type;
+    const char *name;
 };
+
+Operator operators[] = {
+    { LO_EQUAL, "olympic ascension" },
+    { LO_NOTEQUAL, "olympic fury" },
+    { LO_GREATER, "rage of sparta" },
+    { LO_GREATEREQUAL, "rage of the gods" },
+    { LO_LESS, "blade of olympus" },
+    { LO_LESSEQUAL, "blade of chaos" },
+    { LO_AND, "axe" },
+    { LO_OR, "blade" },
+    { LO_XOR, "death" },
+    { AO_ADD, "ascend" },
+    { AO_MINUS, "fall" },
+    { AO_TIMES, "wrath" },
+    { AO_DIVIDE, "betrayal" },
+    { AO_MODULUS, "remains" },
+    { AO_PLUS_PLUS, "power up" },
+    { AO_MINUS_MINUS, "power down" }
+};
+
+const char* getOperator(OperatorType type);
+const char *getKeywordStr(Keyword key);
+const char *getOperatorStr(Operator lo);
 
 void skipWhitespace();
-void handleSpecialCharacter(char currentChar, Token* token, int *pos);
+void skipComments();
+
+int matchKeyword(Token *token);
 int matchIdentifier(Token *token);
+
 int matchInteger(Token *token);
-int matchFloat(Token *token);
-int matchDouble(Token *token);
+int matchFloatOrDouble(Token *token);
 int matchBoolean(Token *token);
 int matchString(Token *token);
-int matchKeyword(const char *keyword, TokenType type, Token *token);
 int matchNumber(Token *token);
+
+int matchOperator(Token *token);
+
+void handleSpecialCharacter(char currentChar, Token* token, int *pos);
 
 static const char *src;
 static int pos = 0;
@@ -79,11 +118,16 @@ Token getNextToken() {
     Token token;
     token.type = TOKEN_EOF;
     token.value[0] = '\0';
-    skipWhitespace();
 
-    if (matchKeyword(KEYWORD_FUNCTION, TOKEN_FUNCTION, &token)) {
-        return token;
-    }
+    skipWhitespace();
+    skipComments();
+
+    if (matchKeyword(&token)) return token;
+    if (matchIdentifier(&token)) return token;
+
+    if (matchNumber(&token)) return token;
+    if (matchString(&token)) return token;
+    if (matchBoolean(&token)) return token;
 
     handleSpecialCharacter(src[pos], &token, &pos);
     return token;
@@ -95,11 +139,43 @@ void skipWhitespace() {
     }
 }
 
+int matchKeyword(Token *token) {
+    for (int i = 0; i < KEYWORD_COUNT; i++) {
+        const char *keywordStr = getKeywordStr(i);
+        const size_t keywordLength = strlen(keywordStr);
+
+        if (strncmp(src + pos, keywordStr, keywordLength) == 0) {
+            token->type = (TokenType)i;
+            strncpy(token->value, keywordStr, keywordLength);
+            token->value[keywordLength] = '\0';
+            pos += (int) keywordLength;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int matchIdentifier(Token *token) {
+    if (isalpha(src[pos]) || src[pos] == '_') {
+        const int start = pos;
+        while (isalnum(src[pos]) || src[pos] == '_') {
+            pos++;
+        }
+        const int length = pos - start;
+        strncpy(token->value, src + start, length);
+        token->value[length] = '\0';
+        token->type = TOKEN_IDENTIFIER;
+        return 1;
+    }
+    return 0;
+}
+
+
 int matchInteger(Token *token) {
     if (isdigit(src[pos])) {
-        int start = pos;
+        const int start = pos;
         while (isdigit(src[pos])) pos++;
-        int length = pos - start;
+        const int length = pos - start;
         strncpy(token->value, src + start, length);
         token->value[length] = '\0';
         token->type = TOKEN_NUMBER;
@@ -108,32 +184,29 @@ int matchInteger(Token *token) {
     return 0;
 }
 
-int matchFloat(Token *token) {
+int matchFloatOrDouble(Token *token) {
     if (isdigit(src[pos])) {
-        int start = pos;
+        const int start = pos;
         while (isdigit(src[pos])) pos++;
-        if (src[pos] == '.') {
-            pos++;
-            while (isdigit(src[pos])) pos++;
-            strncpy(token->value, src + start, pos - start);
-            token->value[pos - start] = '\0';
-            token->type = TOKEN_FLOAT;
-            return 1;
-        }
-    }
-    return 0;
-}
 
-int matchDouble(Token *token) {
-    if (isdigit(src[pos])) {
-        int start = pos;
-        while (isdigit(src[pos])) pos++;
         if (src[pos] == '.') {
             pos++;
-            while (isdigit(src[pos])) pos++;
-            strncpy(token->value, src + start, pos - start);
-            token->value[pos - start] = '\0';
-            token->type = TOKEN_DOUBLE;
+            int digitsAfterDot = 0;
+            while (isdigit(src[pos])) {
+                pos++;
+                digitsAfterDot++;
+            }
+
+            const int length = pos - start;
+            strncpy(token->value, src + start, length);
+            token->value[length] = '\0';
+
+            if (digitsAfterDot > 7) {
+                token->type = TOKEN_DOUBLE;
+            } else {
+                token->type = TOKEN_FLOAT;
+            }
+
             return 1;
         }
     }
@@ -141,16 +214,16 @@ int matchDouble(Token *token) {
 }
 
 int matchBoolean(Token *token) {
-    if (strncmp(src + pos, "yes", 3) == 0) {
-        strncpy(token->value, "yes", 3);
+    if (strncmp(src + pos, getKeywordStr(KEYWORD_TRUE), 3) == 0) {
+        strncpy(token->value, getKeywordStr(KEYWORD_TRUE), 3);
         token->value[3] = '\0';
         token->type = TOKEN_BOOLEAN;
         pos += 3;
         return 1;
     }
 
-    if (strncmp(src + pos, "no", 2) == 0) {
-        strncpy(token->value, "no", 2);
+    if (strncmp(src + pos, getKeywordStr(KEYWORD_FALSE), 2) == 0) {
+        strncpy(token->value, getKeywordStr(KEYWORD_FALSE), 2);
         token->value[2] = '\0';
         token->type = TOKEN_BOOLEAN;
         pos += 2;
@@ -159,12 +232,11 @@ int matchBoolean(Token *token) {
     return 0;
 }
 
-
 int matchString(Token *token) {
     if (src[pos] == '"') {
-        int start = ++pos;
+        const int start = ++pos;
         while (src[pos] != '"' && src[pos] != '\0') pos++;
-        int length = pos - start;
+        const int length = pos - start;
         if (src[pos] == '"') {
             strncpy(token->value, src + start, length);
             token->value[length] = '\0';
@@ -176,38 +248,26 @@ int matchString(Token *token) {
     return 0;
 }
 
-int matchKeyword(const char *keyword, TokenType type, Token *token) {
-    size_t keywordLength = strlen(keyword);
-
-    if (strncmp(src + pos, keyword, keywordLength) == 0) {
-        token->type = type;
-        strncpy(token->value, keyword, keywordLength);
-        token->value[keywordLength] = '\0';
-        pos += (int) keywordLength;
-        return 1;
-    }
-
-    return 0;
-}
-
-int matchIdentifier(Token *token) {
-    if (isalpha(src[pos])) {
-        int start = pos;
-        while (isalnum(src[pos])) pos++;
-        int length = pos - start;
-        strncpy(token->value, src + start, length);
-        token->value[length] = '\0';
-        token->type = TOKEN_IDENTIFIER;
-        return 1;
-    }
-    return 0;
-}
-
 int matchNumber(Token *token) {
-    return matchInteger(token) || matchFloat(token) || matchDouble(token);
+    return matchInteger(token) || matchFloatOrDouble(token);
 }
 
-void handleSpecialCharacter(char currentChar, Token *token, int *pos) {
+int matchOperator(Token *token) {
+    for (int i = 0; i < OPERATOR_COUNT; i++) {
+        const int length = (int) strlen(operators[i].name);
+        if (strncmp(src + pos, operators[i].name, length) == 0) {
+            token->type = TOKEN_OPERATOR;
+            strncpy(token->value, operators[i].name, length);
+            token->value[length] = '\0';
+            pos += length;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+void handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
     switch (currentChar) {
         case '{':
             token->type = TOKEN_LBRACE;
@@ -218,12 +278,57 @@ void handleSpecialCharacter(char currentChar, Token *token, int *pos) {
         case ';':
             token->type = TOKEN_SEMICOLON;
         break;
-        case ',':
-            token->type = TOKEN_COMMA;
-        break;
         default:
             printf("Lexer error: Unknown character '%c'\n", currentChar);
         break;
     }
     (*pos)++;
+}
+
+void skipComments() {
+    while (src[pos] != '\0') {
+        if (strncmp(src + pos, "spartan", 7) == 0) {
+            pos += 7;
+            while (src[pos] != '\n' && src[pos] != '\0') {
+                pos++;
+            }
+        }
+        else if (strncmp(src + pos, "athena", 6) == 0) {
+            pos += 6;
+            if (src[pos] == ' ' || src[pos] == '\n') {
+                if (strncmp(src + pos, "begin", 5) == 0) {
+                    pos += 5;
+                    while (src[pos] != '\0') {
+                        if (strncmp(src + pos, "end", 3) == 0) {
+                            pos += 3;
+                            break;
+                        }
+                        pos++;
+                    }
+                    if (src[pos] == '\0') {
+                        printf("You fool: Missing 'end' after 'begin' in athena block.\n");
+                        exit(1);
+                    }
+                } else {
+                    printf("You fool: Missing 'begin' after 'athena'.\n");
+                    exit(1);
+                }
+            }
+        }
+        else {
+            break;
+        }
+    }
+}
+
+
+const char* getOperator(const OperatorType type) {
+    if (type >= OPERATOR_COUNT) {
+        return "Unknown operator";
+    }
+    return operators[type].name;
+}
+
+const char *getKeywordStr(const Keyword key) {
+    return keywordStrings[key];
 }
