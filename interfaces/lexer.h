@@ -2,22 +2,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-typedef enum {
-    TOKEN_IDENTIFIER,
-    TOKEN_NUMBER,
-    TOKEN_ASSIGN,
-    TOKEN_PRINT,
-    TOKEN_SEMICOLON,
-    TOKEN_LPAREN,
-    TOKEN_RPAREN,
-    TOKEN_EOF,
-    TOKEN_OF
-} TokenType;
-
-typedef struct {
-    TokenType type;
-    char value[50];
-} Token;
+typedef enum keyword Keyword;
+typedef enum logical_operator LogicalOperator;
+typedef enum arithmetic_operator ArithmeticOperator;
+typedef enum token_type TokenType;
+typedef struct token Token;
 
 void initLexer(const char *source);
 Token getNextToken();
