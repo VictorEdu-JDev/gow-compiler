@@ -43,32 +43,7 @@ const char *keywordStrings[] = {
     "destiny"               // KEYWORD_CASE
 };
 
-enum operator_type {
-    LO_EQUAL,
-    LO_NOTEQUAL,
-    LO_GREATER,
-    LO_GREATEREQUAL,
-    LO_LESS,
-    LO_LESSEQUAL,
-    LO_AND,
-    LO_OR,
-    LO_XOR,
-    AO_ADD,
-    AO_MINUS,
-    AO_TIMES,
-    AO_DIVIDE,
-    AO_MODULUS,
-    AO_PLUS_PLUS,
-    AO_MINUS_MINUS,
-    OPERATOR_COUNT
-};
-
-struct operator {
-    OperatorType type;
-    const char *name;
-};
-
-Operator operators[] = {
+const Operator operators[] = {
     { LO_EQUAL, "olympic ascension" },
     { LO_NOTEQUAL, "olympic fury" },
     { LO_GREATER, "rage of sparta" },
@@ -89,7 +64,6 @@ Operator operators[] = {
 
 const char* getOperator(OperatorType type);
 const char *getKeywordStr(Keyword key);
-const char *getOperatorStr(Operator lo);
 
 void skipWhitespace();
 void skipComments();
