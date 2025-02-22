@@ -26,7 +26,29 @@ enum keyword {
     KEYWORD_FUNCTION = "runic",
     KEYWORD_RETURN = "redemption",
     KEYWORD_CALL = "revenge",
-    KEYWORD_ASSIGN = "i am the"
+    KEYWORD_FOR = "cyclone of chaos",
+    KEYWORD_BREAK = "the cycle ends here",
+    KEYWORD_ASSIGN = "i am the",
+    KEYWORD_OF = "of",
+};
+
+enum logical_operator {
+    LO_EQUAL = "olympic ascension",
+    LO_NOTEQUAL = "olympic fury",
+    LO_GREATER = "rage of sparta",
+    LO_GREATEREQUAL = "rage of the gods",
+    LO_LESS = "blade of olympus",
+    LO_LESSEQUAL = "blade of chaos"
+};
+
+enum arithmetic_operator {
+    AO_ADD = "ascend",
+    AO_MINUS = "fall",
+    AO_TIMES = "wrath",
+    AO_DIVIDE = "betrayal",
+    AO_MODULUS = "remains",
+    LO_PLUS_PLUS = "power up",
+    LO_MINUS_MINUS = "power down",
 };
 
 struct token {
@@ -147,7 +169,7 @@ int matchString(Token *token) {
             strncpy(token->value, src + start, length);
             token->value[length] = '\0';
             token->type = TOKEN_STRING;
-            pos++;  // Avança o cursor após a aspas
+            pos++;
             return 1;
         }
     }
