@@ -67,8 +67,14 @@ ASTNode *parseExpression() {
 
     if (currentToken.type == TOKEN_IDENTIFIER ||
         currentToken.type == TOKEN_NUMBER ||
-        currentToken.type == TOKEN_STRING) {
-        left = createNode(currentToken.type == TOKEN_IDENTIFIER ? NODE_IDENTIFIER : NODE_NUMBER, currentToken.value, NULL, NULL);
+        currentToken.type == TOKEN_STRING ||
+        currentToken.type == TOKEN_FLOAT ||
+        currentToken.type == TOKEN_DOUBLE) {
+
+        left = createNode(currentToken.type == TOKEN_IDENTIFIER ? NODE_IDENTIFIER :
+                          (currentToken.type == TOKEN_FLOAT || currentToken.type == TOKEN_DOUBLE ? NODE_NUMBER : NODE_NUMBER),
+                          currentToken.value, NULL, NULL);
+
         advance();
     } else {
         return NULL;
@@ -179,7 +185,7 @@ void printAST(ASTNode *node, int level) {
 }
 
 int main() {
-    const char *code = "runic omega { i am the x of 10; redemption 0; }";
+    const char *code = "runic omega { i am the x of 2.5; redemption 0; }";
     initLexer(code);
     ASTNode *ast = parse();
     printAST(ast, 0);
