@@ -24,7 +24,8 @@ typedef enum token_type {
     TOKEN_FLOAT,
     TOKEN_DOUBLE,
     TOKEN_BOOLEAN,
-    TOKEN_OPERATOR
+    TOKEN_OPERATOR,
+    TOKEN_PERIOD
 } TokenType;
 
 typedef struct token {
