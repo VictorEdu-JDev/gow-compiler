@@ -4,26 +4,6 @@
 #include <stdlib.h>
 #include "../interfaces/lexer.h"
 
-enum keyword {
-    KEYWORD_FUNCTION,
-    KEYWORD_RETURN,
-    KEYWORD_CALL,
-    KEYWORD_FOR,
-    KEYWORD_BREAK,
-    KEYWORD_ASSIGN,
-    KEYWORD_OF,
-    KEYWORD_IF,
-    KEYWORD_ELSE,
-    KEYWORD_ELSEIF,
-    KEYWORD_TRUE,
-    KEYWORD_FALSE,
-    KEYWORD_WHILE,
-    KEYWORD_DO_WHILE,
-    KEYWORD_SWITCH,
-    KEYWORD_CASE,
-    KEYWORD_COUNT
-};
-
 const char *keywordStrings[] = {
     "runic",                // KEYWORD_FUNCTION
     "redemption",           // KEYWORD_RETURN
@@ -79,7 +59,7 @@ int matchNumber(Token *token);
 
 int matchOperator(Token *token);
 
-void handleSpecialCharacter(char currentChar, Token* token, int *pos);
+int handleSpecialCharacter(char currentChar, Token *token, int *pos);
 
 static const char *src;
 static int pos = 0;
@@ -105,7 +85,7 @@ Token getNextToken() {
         if (matchString(&token)) return token;
         if (matchBoolean(&token)) return token;
 
-        handleSpecialCharacter(src[pos], &token, &pos);
+        if (handleSpecialCharacter(src[pos], &token, &pos)) return token;
     }
     return token;
 }
@@ -256,23 +236,33 @@ int matchOperator(Token *token) {
 }
 
 
-void handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
+int handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
+    int length = 0;
     switch (currentChar) {
         case '{':
             token->type = TOKEN_LBRACE;
+            token->value[0] = '{';
+            length = (int) strlen(token->value);
+            token->value[length] = '\0';
         break;
         case '}':
             token->type = TOKEN_RBRACE;
+            token->value[0] = '}';
+            length = (int) strlen(token->value);
+            token->value[length] = '\0';
         break;
         case ';':
             token->type = TOKEN_SEMICOLON;
+            token->value[0] = ';';
+            length = (int) strlen(token->value);
+            token->value[length] = '\0';
         break;
         default:
             printf("Lexer error: Unknown character '%c'\n", currentChar);
-            exit(1);
-        break;
+        return 0;
     }
     (*pos)++;
+    return 1;
 }
 
 void skipComments() {
