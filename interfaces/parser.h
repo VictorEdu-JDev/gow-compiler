@@ -2,9 +2,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-typedef struct ast_node Node;
+typedef struct ast_node ASTNode;
 typedef enum node_type NodeType;
 
-void parse();
+ASTNode *parse();
 
 #endif //PARSER_H
