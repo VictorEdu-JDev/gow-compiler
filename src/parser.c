@@ -1,111 +1,187 @@
+#include "lexer.h"
+#include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lexer.h"
-#include "parser.h"
 
-typedef enum node_type {
+enum node_type {
     NODE_FUNCTION,
+    NODE_RETURN,
     NODE_CALL,
-    NODE_IDENTIFIER,
+    NODE_ASSIGN,
+    NODE_IF,
+    NODE_ELSE,
+    NODE_ELSEIF,
+    NODE_FOR,
+    NODE_BREAK,
     NODE_OPERATOR,
-    NODE_LITERAL,
-    NODE_TYPE_COUNT
-} NodeType;
+    NODE_IDENTIFIER,
+    NODE_NUMBER,
+    NODE_STRING
+};
 
-typedef struct ast_node {
+struct ast_node {
     NodeType type;
-    char value[256];
-    struct ast_node *left;
-    struct ast_node *right;
-} Node;
+    struct ASTNode *left;
+    struct ASTNode *right;
+    char value[255];
+};
 
-Node* newAstNode(NodeType type, const char *value) {
-    Node *node = (Node*)malloc(sizeof(Node));
+ASTNode *createNode(NodeType type, const char *value, ASTNode *left, ASTNode *right) {
+    ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
     node->type = type;
-    strncpy(node->value, value, 255);
-    node->left = NULL;
-    node->right = NULL;
+
+    if (value) {
+        strncpy(node->value, value, sizeof(node->value) - 1);
+        node->value[sizeof(node->value) - 1] = '\0';
+    } else {
+        node->value[0] = '\0';
+    }
+    node->left = left;
+    node->right = right;
     return node;
 }
 
-void freeAstNode(Node* node) {
-    if (node == NULL) return;
-    freeAstNode(node->left);
-    freeAstNode(node->right);
-    free(node);
+static Token currentToken;
+
+void advance() {
+    currentToken = getNextToken();
 }
 
-Node* parseFunctionDeclaration() {
-    Token token = getNextToken();
-
-    if (token.type != TOKEN_IDENTIFIER || strcmp(token.value, "runic") != 0) {
-        return NULL;
+void checkSemicolon() {
+    if (currentToken.type == TOKEN_SEMICOLON) {
+        advance();
+    } else {
+        fprintf(stderr, "Semicolon expected.\n");
+        exit(EXIT_FAILURE);
     }
-
-    Token funcNameToken = getNextToken();
-    if (funcNameToken.type != TOKEN_IDENTIFIER) {
-        return NULL;
-    }
-
-    Node* functionNode = newAstNode(NODE_FUNCTION, funcNameToken.value);
-
-    token = getNextToken();
-
-    if (token.type != TOKEN_LBRACE) {
-        return NULL;
-    }
-
-    token = getNextToken();
-    while (token.type != TOKEN_RBRACE) {
-        token = getNextToken();
-    }
-
-    return functionNode;
 }
 
-Node* parseFunctionReturn() {
-    Token token = getNextToken();
-    if (token.type != TOKEN_IDENTIFIER || strcmp(token.value, "redemption") != 0) {
+
+ASTNode *parseExpression();
+ASTNode *parseStatement();
+ASTNode *parseBlock();
+
+ASTNode *parseExpression() {
+    ASTNode *left = NULL;
+
+    if (currentToken.type == TOKEN_IDENTIFIER ||
+        currentToken.type == TOKEN_NUMBER ||
+        currentToken.type == TOKEN_STRING) {
+        left = createNode(currentToken.type == TOKEN_IDENTIFIER ? NODE_IDENTIFIER : NODE_NUMBER, currentToken.value, NULL, NULL);
+        advance();
+    } else {
         return NULL;
     }
 
-    Token returnValueToken = getNextToken();
-    if (returnValueToken.type != TOKEN_NUMBER) {
-        return NULL;
+    if (currentToken.type == TOKEN_OPERATOR) {
+        char op[255];
+        strncpy(op, currentToken.value, sizeof(op) - 1);
+        op[sizeof(op) - 1] = '\0';
+        advance();
+        ASTNode *right = parseExpression();
+        return createNode(NODE_OPERATOR, op, left, right);
     }
 
-    Node* returnNode = newAstNode(NODE_OPERATOR, returnValueToken.value);
-    return returnNode;
+    return left;
 }
 
-void parse() {
-    while (1) {
-        Token token = getNextToken();
-        if (token.type == TOKEN_EOF) break;
+ASTNode *parseStatement() {
 
-        Node* funcDecl = parseFunctionDeclaration();
-
-        if (funcDecl != NULL) {
-            printf("Função declarada: %s\n", funcDecl->value);
-            freeAstNode(funcDecl);
-            continue;
+    if (currentToken.type == TOKEN_FUNCTION) {
+        advance();
+        if (currentToken.type == TOKEN_IDENTIFIER) {
+            char funcName[255];
+            strncpy(funcName, currentToken.value, sizeof(funcName) - 1);
+            funcName[sizeof(funcName) - 1] = '\0';
+            advance();
+            if (currentToken.type == TOKEN_LBRACE) {
+                ASTNode *body = parseBlock();
+                return createNode(NODE_FUNCTION, funcName, body, NULL);
+            }
+            printf("Seu mortal tolo! Espero que ponha um '{', ou voce sera banido para as profundezas do Hades!\n");
+            exit(1);
         }
-
-        Node* funcReturn = parseFunctionReturn();
-        if (funcReturn != NULL) {
-            printf("Liberou memoria.\n");
-            printf("Retorno: %s\n", funcReturn->value);
-            freeAstNode(funcReturn);
-            continue;
-        }
-
     }
+
+    if (currentToken.type == TOKEN_ASSIGN) {
+        advance();
+        if (currentToken.type == TOKEN_IDENTIFIER) {
+            char varName[255];
+            strncpy(varName, currentToken.value, sizeof(varName) - 1);
+            varName[sizeof(varName) - 1] = '\0';
+            advance();
+
+            if (currentToken.type == TOKEN_ASSIGN_SIGNAL) {
+                advance();
+                ASTNode *expr = parseExpression();
+                checkSemicolon();
+                return createNode(NODE_ASSIGN, varName, expr, NULL);
+            }
+            printf("Syntax error: Expected 'of' after variable '%s'\n", varName);
+            exit(1);
+        }
+        printf("You fool! What a have you done? An identifier as expected after %s\n", currentToken.value);
+        exit(1);
+    }
+
+    if (currentToken.type == TOKEN_IF) {
+        advance();
+        ASTNode *condition = parseExpression();
+        ASTNode *body = parseBlock();
+        return createNode(NODE_IF, getKeywordStr(KEYWORD_IF), condition, body);
+    }
+
+    if (currentToken.type == TOKEN_RETURN) {
+        advance();
+        ASTNode *expr = parseExpression();
+        checkSemicolon();
+        return createNode(NODE_RETURN, getKeywordStr(KEYWORD_RETURN), expr, NULL);
+    }
+    return NULL;
+}
+
+ASTNode *parseBlock() {
+    if (currentToken.type == TOKEN_LBRACE) {
+        advance();
+        ASTNode *block = NULL;
+        ASTNode *lastStmt = NULL;
+
+        while (currentToken.type != TOKEN_RBRACE &&
+            currentToken.type != TOKEN_EOF) {
+            ASTNode *stmt = parseStatement();
+            if (stmt) {
+                if (!block) {
+                    block = stmt;
+                } else {
+                    lastStmt->right = stmt;
+                }
+                lastStmt = stmt;
+            }
+        }
+        advance();
+        return block;
+    }
+    return NULL;
+}
+
+ASTNode *parse() {
+    advance();
+    return parseStatement();
+}
+
+void printAST(ASTNode *node, int level) {
+    if (!node) return;
+    for (int i = 0; i < level; i++) printf("  ");
+    printf("%s\n", node->value);
+    printAST(node->left, level + 1);
+    printAST(node->right, level + 1);
 }
 
 int main() {
-    const char* sourceCode = "runic main { redemption 0; }";
-    initLexer(sourceCode);
-    parse();
+    const char *code = "runic omega { i am the x of 10; redemption 0; }";
+    initLexer(code);
+    ASTNode *ast = parse();
+    printAST(ast, 0);
     return 0;
 }
