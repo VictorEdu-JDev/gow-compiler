@@ -5,6 +5,27 @@
 #include "../interfaces/lexer.h"
 
 
+typedef struct {
+    TokenType token;
+    OperatorType opType;
+    const char *operator;
+} TokenToOperatorMap;
+
+typedef struct token_map {
+    TokenType tokenType;
+    const char *value;
+}TokenToKeywordMap;
+
+typedef struct {
+    Keyword keyword;
+    const char *keywordStr;
+} KeywordMap;
+
+typedef struct operator {
+    OperatorType type;
+    const char *name;
+} Operator;
+
 KeywordMap keywords[] = {
     { KEYWORD_FUNCTION, "runic" },
     { KEYWORD_RETURN, "redemption" },
@@ -63,8 +84,24 @@ TokenToKeywordMap keywordMapping[] = {
     {TOKEN_CASE, "destiny"}
 };
 
-const char* getOperator(OperatorType type);
-const char *getKeywordStr(Keyword key);
+TokenToOperatorMap operatorMapping[] = {
+    {TOKEN_OPERATOR, LO_EQUAL, "olympic ascension"},
+    {TOKEN_OPERATOR, LO_NOTEQUAL, "olympic fury"},
+    {TOKEN_OPERATOR, LO_GREATER, "rage of sparta"},
+    {TOKEN_OPERATOR, LO_GREATEREQUAL, "rage of the gods"},
+    {TOKEN_OPERATOR, LO_LESS, "blade of olympus"},
+    {TOKEN_OPERATOR, LO_LESSEQUAL, "blade of chaos"},
+    {TOKEN_OPERATOR, LO_AND, "axe"},
+    {TOKEN_OPERATOR, LO_OR, "blade"},
+    {TOKEN_OPERATOR, LO_XOR, "death"},
+    {TOKEN_OPERATOR, AO_ADD, "ascend"},
+    {TOKEN_OPERATOR, AO_MINUS, "fall"},
+    {TOKEN_OPERATOR, AO_TIMES, "wrath"},
+    {TOKEN_OPERATOR, AO_DIVIDE, "betrayal"},
+    {TOKEN_OPERATOR, AO_MODULUS, "remains"},
+    {TOKEN_OPERATOR, AO_PLUS_PLUS, "power up"},
+    {TOKEN_OPERATOR, AO_MINUS_MINUS, "power down"}
+};
 
 void skipWhitespace();
 void skipComments();
@@ -72,8 +109,6 @@ void skipComments();
 int matchKeyword(Token *token);
 int matchIdentifier(Token *token);
 
-int matchInteger(Token *token);
-int matchFloatOrDouble(Token *token);
 int matchBoolean(Token *token);
 int matchString(Token *token);
 int matchNumber(Token *token);
@@ -98,6 +133,8 @@ Token getNextToken() {
     while (src[pos] != '\0') {
         skipWhitespace();
         skipComments();
+
+        if (matchOperator(&token)) return token;
 
         if (matchKeyword(&token)) return token;
         if (matchIdentifier(&token)) return token;
@@ -129,8 +166,6 @@ int matchKeyword(Token *token) {
                 strncpy(token->value, keywordStr, keywordLength);
                 token->value[keywordLength] = '\0';
                 pos += (int) keywordLength;
-                printf("%s\n", token->value);
-                printf("%d\n", token->type);
                 return 1;
             }
         }
@@ -281,6 +316,7 @@ int handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
         break;
         default:
             printf("Lexer error: Unknown character '%c'\n", currentChar);
+            exit(1);
         return 0;
     }
     (*pos)++;
@@ -336,4 +372,13 @@ const char* getKeywordStr(const Keyword key) {
         return "Unknown keyword.";
     }
     return keywords[key].keywordStr;
+}
+
+const char* getOperatorToken(const Token token) {
+    for (int i = 0; i < OPERATOR_COUNT; i++) {
+        if (operatorMapping[i].token == token.type) {
+            return operatorMapping[i].operator;
+        }
+    }
+    return "Unknown operator.";
 }
