@@ -7,6 +7,10 @@ typedef enum token_type {
     TOKEN_RETURN,
     TOKEN_CALL,
     TOKEN_FOR,
+    TOKEN_WHILE,
+    TOKEN_DO_WHILE,
+    TOKEN_SWITCH,
+    TOKEN_CASE,
     TOKEN_BREAK,
     TOKEN_ASSIGN,
     TOKEN_ASSIGN_SIGNAL,
@@ -28,11 +32,6 @@ typedef enum token_type {
     TOKEN_PERIOD
 } TokenType;
 
-typedef struct token {
-    TokenType type;
-    char value[255];
-} Token;
-
 typedef enum operator_type {
     LO_EQUAL,
     LO_NOTEQUAL,
@@ -53,11 +52,6 @@ typedef enum operator_type {
     OPERATOR_COUNT
 } OperatorType;
 
-typedef struct operator {
-    OperatorType type;
-    const char *name;
-} Operator;
-
 typedef enum keyword {
     KEYWORD_FUNCTION,
     KEYWORD_RETURN,
@@ -77,6 +71,27 @@ typedef enum keyword {
     KEYWORD_CASE,
     KEYWORD_COUNT
 } Keyword;
+
+typedef struct token {
+    TokenType type;
+    char value[255];
+} Token;
+
+typedef struct token_map {
+    TokenType tokenType;
+    const char *value;
+}TokenToKeywordMap;
+
+typedef struct {
+    Keyword keyword;
+    const char *keywordStr;
+} KeywordMap;
+
+typedef struct operator {
+    OperatorType type;
+    const char *name;
+} Operator;
+
 
 const char* getOperator(OperatorType type);
 const char *getKeywordStr(Keyword key);
