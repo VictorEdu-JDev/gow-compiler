@@ -17,13 +17,16 @@ enum node_type {
     NODE_OPERATOR,
     NODE_IDENTIFIER,
     NODE_NUMBER,
+    NODE_FLOAT,
+    NODE_DOUBLE,
+    NODE_BOOLEAN,
     NODE_STRING
 };
 
 struct ast_node {
     NodeType type;
-    struct ASTNode *left;
-    struct ASTNode *right;
+    ASTNode *left;
+    ASTNode *right;
     char value[255];
 };
 
@@ -43,9 +46,15 @@ ASTNode *createNode(NodeType type, const char *value, ASTNode *left, ASTNode *ri
 }
 
 static Token currentToken;
+void errorMessage(Token token);
 
 void advance() {
     currentToken = getNextToken();
+}
+
+void errorMessage(Token tp) {
+    fprintf(stderr, "Erro: token inesperado '%s'\n", tp.value);
+    exit(1);
 }
 
 void checkSemicolon() {
@@ -64,20 +73,26 @@ ASTNode *parseBlock();
 
 ASTNode *parseExpression() {
     ASTNode *left = NULL;
-
-    if (currentToken.type == TOKEN_IDENTIFIER ||
+    if (currentToken.type == TOKEN_CALL ||
         currentToken.type == TOKEN_NUMBER ||
         currentToken.type == TOKEN_STRING ||
         currentToken.type == TOKEN_FLOAT ||
-        currentToken.type == TOKEN_DOUBLE) {
+        currentToken.type == TOKEN_DOUBLE ||
+        currentToken.type == TOKEN_BOOLEAN ||
+        currentToken.type == TOKEN_IDENTIFIER) {
 
-        left = createNode(currentToken.type == TOKEN_IDENTIFIER ? NODE_IDENTIFIER :
-                          (currentToken.type == TOKEN_FLOAT || currentToken.type == TOKEN_DOUBLE ? NODE_NUMBER : NODE_NUMBER),
-                          currentToken.value, NULL, NULL);
+        NodeType nodeType = (currentToken.type == TOKEN_IDENTIFIER) ? NODE_IDENTIFIER :
+                            (currentToken.type == TOKEN_FLOAT) ? NODE_FLOAT :
+                            (currentToken.type == TOKEN_DOUBLE) ? NODE_DOUBLE :
+                            (currentToken.type == TOKEN_BOOLEAN) ? NODE_BOOLEAN :
+                            (currentToken.type == TOKEN_CALL) ? NODE_CALL :
+                            NODE_NUMBER;
 
+        left = createNode(nodeType, currentToken.value, NULL, NULL);
         advance();
     } else {
-        return NULL;
+        printf("Ero aqui\n");
+        errorMessage(currentToken);
     }
 
     if (currentToken.type == TOKEN_OPERATOR) {
@@ -105,9 +120,9 @@ ASTNode *parseStatement() {
                 ASTNode *body = parseBlock();
                 return createNode(NODE_FUNCTION, funcName, body, NULL);
             }
-            printf("Seu mortal tolo! Espero que ponha um '{', ou voce sera banido para as profundezas do Hades!\n");
-            exit(1);
+            errorMessage(currentToken);
         }
+        errorMessage(currentToken);
     }
 
     if (currentToken.type == TOKEN_ASSIGN) {
@@ -124,11 +139,9 @@ ASTNode *parseStatement() {
                 checkSemicolon();
                 return createNode(NODE_ASSIGN, varName, expr, NULL);
             }
-            printf("Syntax error: Expected 'of' after variable '%s'\n", varName);
-            exit(1);
+            errorMessage(currentToken);
         }
-        printf("You fool! What a have you done? An identifier as expected after %s\n", currentToken.value);
-        exit(1);
+        errorMessage(currentToken);
     }
 
     if (currentToken.type == TOKEN_IF) {
@@ -164,8 +177,8 @@ ASTNode *parseBlock() {
                 }
                 lastStmt = stmt;
             }
+            advance();
         }
-        advance();
         return block;
     }
     return NULL;
@@ -185,7 +198,7 @@ void printAST(ASTNode *node, int level) {
 }
 
 int main() {
-    const char *code = "runic omega { i am the x of 2.5; redemption 0; }";
+    const char *code = "runic omega { i am the x of _no; redemption 0; }";
     initLexer(code);
     ASTNode *ast = parse();
     printAST(ast, 0);
