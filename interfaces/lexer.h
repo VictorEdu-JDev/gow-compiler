@@ -2,9 +2,6 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-typedef enum keyword Keyword;
-typedef enum operator_type OperatorType;
-
 typedef enum token_type {
     TOKEN_FUNCTION,
     TOKEN_RETURN,
@@ -35,7 +32,7 @@ typedef struct token {
     char value[255];
 } Token;
 
-enum operator_type {
+typedef enum operator_type {
     LO_EQUAL,
     LO_NOTEQUAL,
     LO_GREATER,
@@ -53,12 +50,32 @@ enum operator_type {
     AO_PLUS_PLUS,
     AO_MINUS_MINUS,
     OPERATOR_COUNT
-};
+} OperatorType;
 
 typedef struct operator {
     OperatorType type;
     const char *name;
 } Operator;
+
+typedef enum keyword {
+    KEYWORD_FUNCTION,
+    KEYWORD_RETURN,
+    KEYWORD_CALL,
+    KEYWORD_FOR,
+    KEYWORD_BREAK,
+    KEYWORD_ASSIGN,
+    KEYWORD_OF,
+    KEYWORD_IF,
+    KEYWORD_ELSE,
+    KEYWORD_ELSEIF,
+    KEYWORD_TRUE,
+    KEYWORD_FALSE,
+    KEYWORD_WHILE,
+    KEYWORD_DO_WHILE,
+    KEYWORD_SWITCH,
+    KEYWORD_CASE,
+    KEYWORD_COUNT
+} Keyword;
 
 const char* getOperator(OperatorType type);
 const char *getKeywordStr(Keyword key);
