@@ -177,13 +177,13 @@ int matchKeyword(Token *token) {
 int matchIdentifier(Token *token) {
     if (pos >= strlen(src)) return 0;
 
-    if ((isalpha(src[pos]) || src[pos] == '_') && src[pos] <= 127) {
+    if ((isalpha(src[pos]) || src[pos] == '_')) {
         const int start = pos;
+        size_t src_len = strlen(src);
 
-        while (pos < strlen(src) &&
-               (isalnum(src[pos]) || src[pos] == '_') && src[pos] <= 127) {
+        while (pos < src_len && (isalnum(src[pos]) || src[pos] == '_')) {
             pos++;
-               }
+        }
 
         const int length = pos - start;
         if (length >= sizeof(token->value)) {
@@ -288,31 +288,26 @@ int matchOperator(Token *token) {
 
 
 int handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
-    int length = 0;
     switch (currentChar) {
         case '{':
             token->type = TOKEN_LBRACE;
             token->value[0] = '{';
-            length = (int) strlen(token->value);
-            token->value[length] = '\0';
+            token->value[1] = '\0';
         break;
         case '}':
             token->type = TOKEN_RBRACE;
             token->value[0] = '}';
-            length = (int) strlen(token->value);
-            token->value[length] = '\0';
+            token->value[1] = '\0';
         break;
         case ';':
             token->type = TOKEN_SEMICOLON;
             token->value[0] = ';';
-            length = (int) strlen(token->value);
-            token->value[length] = '\0';
+            token->value[1] = '\0';
         break;
         case '.':
             token->type = TOKEN_PERIOD;
             token->value[0] = '.';
-            length = (int) strlen(token->value);
-            token->value[length] = '\0';
+            token->value[1] = '\0';
         break;
         default:
             printf("Lexer error: Unknown character '%c'\n", currentChar);
