@@ -77,22 +77,7 @@ typedef struct token {
     char value[255];
 } Token;
 
-typedef struct token_map {
-    TokenType tokenType;
-    const char *value;
-}TokenToKeywordMap;
-
-typedef struct {
-    Keyword keyword;
-    const char *keywordStr;
-} KeywordMap;
-
-typedef struct operator {
-    OperatorType type;
-    const char *name;
-} Operator;
-
-
+const char* getOperatorToken(Token token);
 const char* getOperator(OperatorType type);
 const char *getKeywordStr(Keyword key);
 void initLexer(const char *source);
