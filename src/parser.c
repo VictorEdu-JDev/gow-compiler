@@ -133,9 +133,10 @@ ASTNode *parseFunction() {
     if (currentToken.type != TOKEN_LBRACE)
         errorMessage(currentToken);
 
+    ASTNode *params = NULL;
     ASTNode *body = parseBlock();
 
-    return createNode(NODE_FUNCTION, funcName, body, NULL);
+    return createNode(NODE_FUNCTION, funcName, params, body);
 }
 
 ASTNode *parseAssignment() {
