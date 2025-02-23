@@ -175,7 +175,6 @@ int matchFloatOrDouble(Token *token) {
             } else {
                 token->type = TOKEN_FLOAT;
             }
-
             return 1;
         }
     }
@@ -218,7 +217,7 @@ int matchString(Token *token) {
 }
 
 int matchNumber(Token *token) {
-    return matchInteger(token) || matchFloatOrDouble(token);
+    return  matchFloatOrDouble(token) || matchInteger(token);
 }
 
 int matchOperator(Token *token) {
@@ -254,6 +253,12 @@ int handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
         case ';':
             token->type = TOKEN_SEMICOLON;
             token->value[0] = ';';
+            length = (int) strlen(token->value);
+            token->value[length] = '\0';
+        break;
+        case '.':
+            token->type = TOKEN_PERIOD;
+            token->value[0] = '.';
             length = (int) strlen(token->value);
             token->value[length] = '\0';
         break;
