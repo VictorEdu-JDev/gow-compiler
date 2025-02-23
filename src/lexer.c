@@ -4,23 +4,24 @@
 #include <stdlib.h>
 #include "../interfaces/lexer.h"
 
-const char *keywordStrings[] = {
-    "runic",                // KEYWORD_FUNCTION
-    "redemption",           // KEYWORD_RETURN
-    "revenge",              // KEYWORD_CALL
-    "cyclone of chaos",     // KEYWORD_FOR
-    "the cycle ends here",  // KEYWORD_BREAK
-    "i am the",             // KEYWORD_ASSIGN
-    "of",                   // KEYWORD_OF
-    "trial",                // KEYWORD_IF
-    "fate",                 // KEYWORD_ELSE
-    "fate else",            // KEYWORD_ELSEIF
-    "yes",                  // KEYWORD_TRUE
-    "no",                   // KEYWORD_FALSE
-    "hyperion ram",         // KEYWORD_WHILE
-    "spartan charge",       // KEYWORD_DO_WHILE
-    "rapid switch",         // KEYWORD_SWITCH
-    "destiny"               // KEYWORD_CASE
+
+KeywordMap keywords[] = {
+    { KEYWORD_FUNCTION, "runic" },
+    { KEYWORD_RETURN, "redemption" },
+    { KEYWORD_CALL, "revenge" },
+    { KEYWORD_FOR, "cyclone of chaos" },
+    { KEYWORD_BREAK, "the cycle ends here" },
+    { KEYWORD_ASSIGN, "i am the" },
+    { KEYWORD_OF, "of" },
+    { KEYWORD_IF, "trial" },
+    { KEYWORD_ELSE, "fate" },
+    { KEYWORD_ELSEIF, "fate else" },
+    { KEYWORD_TRUE, "yes" },
+    { KEYWORD_FALSE, "no" },
+    { KEYWORD_WHILE, "hyperion ram" },
+    { KEYWORD_DO_WHILE, "spartan charge" },
+    { KEYWORD_SWITCH, "rapid switch" },
+    { KEYWORD_CASE, "destiny" }
 };
 
 const Operator operators[] = {
@@ -40,6 +41,26 @@ const Operator operators[] = {
     { AO_MODULUS, "remains" },
     { AO_PLUS_PLUS, "power up" },
     { AO_MINUS_MINUS, "power down" }
+};
+
+
+TokenToKeywordMap keywordMapping[] = {
+    {TOKEN_FUNCTION, "runic"},
+    {TOKEN_RETURN, "redemption"},
+    {TOKEN_CALL, "revenge"},
+    {TOKEN_FOR, "cyclone of chaos"},
+    {TOKEN_BREAK, "the cycle ends here"},
+    {TOKEN_ASSIGN, "i am the"},
+    {TOKEN_ASSIGN_SIGNAL, "of"},
+    {TOKEN_IF, "trial"},
+    {TOKEN_ELSE, "fate"},
+    {TOKEN_ELSEIF, "fate else"},
+    {TOKEN_BOOLEAN, "yes"},
+    {TOKEN_BOOLEAN, "no"},
+    {TOKEN_WHILE, "hyperion ram"},
+    {TOKEN_DO_WHILE, "spartan charge"},
+    {TOKEN_SWITCH, "rapid switch"},
+    {TOKEN_CASE, "destiny"}
 };
 
 const char* getOperator(OperatorType type);
@@ -83,7 +104,6 @@ Token getNextToken() {
 
         if (matchNumber(&token)) return token;
         if (matchString(&token)) return token;
-        if (matchBoolean(&token)) return token;
 
         if (handleSpecialCharacter(src[pos], &token, &pos)) return token;
     }
@@ -97,32 +117,38 @@ void skipWhitespace() {
 }
 
 int matchKeyword(Token *token) {
-    for (int i = 0; i < KEYWORD_COUNT; i++) {
-        const char *keywordStr = getKeywordStr(i);
+    for (int i = 0; i < sizeof(keywordMapping) / sizeof(keywordMapping[0]); i++) {
+        const char *keywordStr = keywordMapping[i].value;
         const size_t keywordLength = strlen(keywordStr);
 
         if (strncmp(src + pos, keywordStr, keywordLength) == 0) {
-            token->type = (TokenType)i;
-            strncpy(token->value, keywordStr, keywordLength);
-            token->value[keywordLength] = '\0';
-            pos += (int) keywordLength;
-            return 1;
+            if (src[pos + keywordLength] == ' ' ||
+                src[pos + keywordLength] == '\0' ||
+                src[pos + keywordLength] == ';') {
+                token->type = keywordMapping[i].tokenType;
+                strncpy(token->value, keywordStr, keywordLength);
+                token->value[keywordLength] = '\0';
+                pos += (int) keywordLength;
+                printf("%s\n", token->value);
+                printf("%d\n", token->type);
+                return 1;
+            }
         }
     }
     return 0;
 }
 
+
 int matchIdentifier(Token *token) {
     if (pos >= strlen(src)) return 0;
 
-    if (isalpha(src[pos]) || src[pos] == '_') {
+    if ((isalpha(src[pos]) || src[pos] == '_') && src[pos] <= 127) {
         const int start = pos;
 
         while (pos < strlen(src) &&
-               (isalnum(src[pos]) ||
-                src[pos] == '_')) {
+               (isalnum(src[pos]) || src[pos] == '_') && src[pos] <= 127) {
             pos++;
-                }
+               }
 
         const int length = pos - start;
         if (length >= sizeof(token->value)) {
@@ -138,29 +164,16 @@ int matchIdentifier(Token *token) {
     return 0;
 }
 
-
-
-int matchInteger(Token *token) {
+int matchNumber(Token *token) {
     if (isdigit(src[pos])) {
         const int start = pos;
-        while (isdigit(src[pos])) pos++;
-        const int length = pos - start;
-        strncpy(token->value, src + start, length);
-        token->value[length] = '\0';
-        token->type = TOKEN_NUMBER;
-        return 1;
-    }
-    return 0;
-}
 
-int matchFloatOrDouble(Token *token) {
-    if (isdigit(src[pos])) {
-        const int start = pos;
         while (isdigit(src[pos])) pos++;
 
         if (src[pos] == '.') {
             pos++;
             int digitsAfterDot = 0;
+
             while (isdigit(src[pos])) {
                 pos++;
                 digitsAfterDot++;
@@ -177,10 +190,18 @@ int matchFloatOrDouble(Token *token) {
             }
             return 1;
         }
+
+        const int length = pos - start;
+        strncpy(token->value, src + start, length);
+        token->value[length] = '\0';
+        token->type = TOKEN_NUMBER;
+        return 1;
     }
+
     return 0;
 }
 
+// Deprecated
 int matchBoolean(Token *token) {
     if (strncmp(src + pos, getKeywordStr(KEYWORD_TRUE), 3) == 0) {
         strncpy(token->value, getKeywordStr(KEYWORD_TRUE), 3);
@@ -214,10 +235,6 @@ int matchString(Token *token) {
         }
     }
     return 0;
-}
-
-int matchNumber(Token *token) {
-    return  matchFloatOrDouble(token) || matchInteger(token);
 }
 
 int matchOperator(Token *token) {
@@ -309,11 +326,14 @@ void skipComments() {
 
 const char* getOperator(const OperatorType type) {
     if (type >= OPERATOR_COUNT) {
-        return "Unknown operator";
+        return "Unknown operator.";
     }
     return operators[type].name;
 }
 
-const char *getKeywordStr(const Keyword key) {
-    return keywordStrings[key];
+const char* getKeywordStr(const Keyword key) {
+    if (key >= KEYWORD_COUNT) {
+        return "Unknown keyword.";
+    }
+    return keywords[key].keywordStr;
 }
