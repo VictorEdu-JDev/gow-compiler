@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-ASTNode *parseExpression();
 ASTNode *parseStatement();
 ASTNode *parseBlock();
 ASTNode *parseFunction();
@@ -18,20 +17,23 @@ ASTNode *createNode(NodeType type, const char *value, ASTNode *left, ASTNode *ri
 ASTNode *parseStatements();
 void errorMessage(Token token);
 void advance();
+ASTNode* parseFactor();
+ASTNode* parseTerm();
 
 static Token currentToken;
 
 ASTNode *parse() {
     advance();
-    return parseStatement();
+    return parseStatements();
 }
 
 void advance() {
     currentToken = getNextToken();
+    printf("Avancando para token: %s\n", currentToken.value);
 }
 
 void errorMessage(Token tp) {
-    fprintf(stderr, "Erro: token inesperado '%s'\n", tp.value);
+    fprintf(stderr, "Erro no parser: token inesperado '%s'\n", tp.value);
     exit(1);
 }
 
@@ -53,26 +55,72 @@ void checkSemicolon() {
     if (currentToken.type == TOKEN_SEMICOLON) {
         advance();
     } else {
-        fprintf(stderr, "Erro: esperado ';' antes de '%s'.\n", currentToken.value);
+        fprintf(stderr, "Erro no parser: esperado ';' antes de '%s'.\n", currentToken.value);
         exit(EXIT_FAILURE);
     }
 }
 
-ASTNode *parseExpression() {
-    ASTNode *left = createExpressionNode();
+ASTNode* parseExpression() {
+    ASTNode *left = parseTerm();
     if (left == NULL) return NULL;
 
-    if (currentToken.type == TOKEN_OPERATOR) {
-        printf("%s\n", currentToken.value);
+    while (currentToken.type == TOKEN_OPERATOR &&
+           (strcmp(currentToken.value, getOperator(AO_ADD)) == 0 ||
+               strcmp(currentToken.value, getOperator(AO_MINUS)) == 0)) {
+            char op[255];
+            strncpy(op, currentToken.value, sizeof(op) - 1);
+            op[sizeof(op) - 1] = '\0';
+            advance();
+
+            ASTNode *right = parseTerm();
+            if (right == NULL) return NULL;
+
+            left = createNode(NODE_OPERATOR, op, left, right);
+    }
+
+    return left;
+}
+
+ASTNode* parseTerm() {
+    ASTNode *left = parseFactor();
+    if (left == NULL) return NULL;
+
+    while (currentToken.type == TOKEN_OPERATOR &&
+           (strcmp(currentToken.value, getOperator(AO_TIMES))) == 0 ||
+               strcmp(currentToken.value, getOperator(AO_DIVIDE)) == 0) {
         char op[255];
         strncpy(op, currentToken.value, sizeof(op) - 1);
         op[sizeof(op) - 1] = '\0';
         advance();
-        ASTNode *right = parseExpression();
-        return createNode(NODE_OPERATOR, op, left, right);
-    }
+
+        ASTNode *right = parseFactor();
+        if (right == NULL) return NULL;
+
+        left = createNode(NODE_OPERATOR, op, left, right);
+           }
 
     return left;
+}
+
+ASTNode* parseFactor() {
+    if (currentToken.type == TOKEN_NUMBER) {
+        char value[255];
+        strncpy(value, currentToken.value, sizeof(value) - 1);
+        value[sizeof(value) - 1] = '\0';
+        advance();
+        return createNode(NODE_NUMBER, value, NULL, NULL);
+    }
+
+    if (currentToken.type == TOKEN_IDENTIFIER) {
+        char varName[255];
+        strncpy(varName, currentToken.value, sizeof(varName) - 1);
+        varName[sizeof(varName) - 1] = '\0';
+        advance();
+        return createNode(NODE_VARIABLE, varName, NULL, NULL);
+    }
+
+    errorMessage(currentToken);
+    return NULL;
 }
 
 ASTNode *createExpressionNode() {
@@ -115,7 +163,8 @@ ASTNode *parseStatement() {
         case TOKEN_RETURN:
             return parseReturnStatement();
         default:
-            return NULL;
+            errorMessage(currentToken);
+            exit(1);
     }
 }
 
@@ -192,14 +241,43 @@ ASTNode *parseStatements() {
     ASTNode *lastStmt = NULL;
 
     while (currentToken.type != TOKEN_RBRACE &&
-        currentToken.type != TOKEN_EOF) {
+           currentToken.type != TOKEN_EOF) {
         ASTNode *stmt = parseStatement();
-        if (stmt) {
-            if (!firstStmt) firstStmt = stmt;
-            else lastStmt->right = stmt;
+        if (stmt != NULL) {
+            if (!firstStmt) {
+                firstStmt = stmt;
+            } else if (lastStmt) {
+                lastStmt->right = stmt;
+            }
             lastStmt = stmt;
         }
     }
-
     return firstStmt;
 }
+
+
+void printAST(ASTNode *node, int level) {
+    if (node == NULL) return;
+
+    for (int i = 0; i < level; i++) {
+        printf("    ");
+    }
+    printf("%s\n", node->value);
+
+    if (node->left) {
+        for (int i = 0; i < level; i++) {
+            printf("    ");
+        }
+        printf("L-> ");
+        printAST(node->left, level + 1);
+    }
+
+    if (node->right) {
+        for (int i = 0; i < level; i++) {
+            printf("    ");
+        }
+        printf("R-> ");
+        printAST(node->right, level + 1);
+    }
+}
+
