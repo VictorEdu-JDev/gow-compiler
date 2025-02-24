@@ -18,7 +18,8 @@ enum node_type {
     NODE_FLOAT,
     NODE_DOUBLE,
     NODE_BOOLEAN,
-    NODE_STRING
+    NODE_STRING,
+    NODE_VARIABLE
 };
 
 typedef enum node_type NodeType;
@@ -32,5 +33,6 @@ struct ast_node {
 };
 
 ASTNode *parse();
+void printAST(ASTNode *node, int depth);
 
 #endif //PARSER_H
