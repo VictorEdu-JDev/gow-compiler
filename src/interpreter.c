@@ -1,179 +1,147 @@
+
 #include "lexer.h"
 #include "parser.h"
-#include "interpreter.h"
+#include "symbol_table.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-struct variable {
-    char name[255];
-    char value[255];
-};
+static SymbolTable symbolTable;
 
-struct function {
-    char name[255];
-    ASTNode *body;
-};
-
-struct environment {
-    Variable variables[MAX_VARIABLES];
-    Function functions[MAX_FUNCTIONS];
-    int var_count;
-    int func_count;
-};
-
-void handleReturn(ASTNode* node);
-void addFunction(const char *name, ASTNode *body);
-void executeAST(ASTNode *node);
-void setVariable(const char *name, const char *value);
-
-ASTNode *findFunctionNode(ASTNode *node, const char *name);
-
-static Environment env;
-int returnFlag = 0;
-
-void executeAST(ASTNode *node) {
-    if (!node) return;
-
-    switch (node->type) {
-        case NODE_ASSIGN: {
-            setVariable(node->value, node->left->value);
-            break;
-        }
-        case NODE_OPERATOR: {
-            break;
-        }
-        case NODE_IF: {
-            break;
-        }
-        case NODE_FUNCTION: {
-            addFunction(node->value, node->right);
-            break;
-        }
-        case NODE_CALL: {
-            callFunction(node->value);
-            break;
-        }
-        case NODE_RETURN: {
-            handleReturn(node);
-            break;
-        }
-        default:
-            break;
-    }
-
-    executeAST(node->left);
-    executeAST(node->right);
-}
-
-void errorMessageInterp(const char *message) {
-    fprintf(stderr, "Erro: %s\n", message);
-    exit(1);
-}
-
-Variable* getVariable(const char *name) {
-    for (int i = 0; i < env.var_count; i++) {
-        if (strcmp(env.variables[i].name, name) == 0) {
-            return &env.variables[i];
-        }
-    }
-    return NULL;
-}
-
-Function* getFunction(const char *name) {
-    for (int i = 0; i < env.func_count; i++) {
-        if (strcmp(env.functions[i].name, name) == 0) {
-            return &env.functions[i];
-        }
-    }
-    return NULL;
-}
-
-void setVariable(const char *name, const char *value) {
-    Variable *var = getVariable(name);
-    if (var) {
-        strncpy(var->value, value, sizeof(var->value) - 1);
-        var->value[sizeof(var->value) - 1] = '\0';
-    } else {
-        if (env.var_count >= MAX_VARIABLES) {
-            errorMessageInterp("Limite de variáveis atingido.");
-        }
-
-        Variable *newVar = &env.variables[env.var_count];
-
-        strncpy(newVar->name, name, sizeof(newVar->name) - 1);
-        newVar->name[sizeof(newVar->name) - 1] = '\0';
-
-        strncpy(newVar->value, value, sizeof(newVar->value) - 1);
-        newVar->value[sizeof(newVar->value) - 1] = '\0';
-
-        env.var_count++;
-    }
-}
-
-void callFunction(const char *name) {
-    struct function *func = getFunction(name);
-    if (!func) {
-        errorMessageInterp("Funcao nao encontrada.");
-    }
-    executeAST(func->body);
-}
-
-void handleReturn(ASTNode *node) {
-    if (node->left) {
-        setVariable("return_value", node->left->value);
-    }
-    returnFlag = 1;
-}
-
-void addFunction(const char *name, ASTNode *body) {
-    if (env.func_count >= MAX_FUNCTIONS) {
-        errorMessageInterp("Limite de funções atingido.");
-    }
-
-    strncpy(env.functions[env.func_count].name, name, sizeof(env.functions[env.func_count].name) - 1);
-    env.functions[env.func_count].name[sizeof(env.functions[env.func_count].name) - 1] = '\0'; // Garantir que o nome termine com '\0'
-
-    env.functions[env.func_count].body = body;
-    env.func_count++;
-}
-
-void initInterpreter() {
-    env.var_count = 0;
-    env.func_count = 0;
-}
-
-void executeProgram(ASTNode *program) {
-    ASTNode *omegaFunc = findFunctionNode(program, MAIN);
-
-    if (omegaFunc) {
-        if (omegaFunc->left) executeAST(omegaFunc->left);
-        if (omegaFunc->right) executeAST(omegaFunc->right);
-    } else errorMessageInterp("Funcao principal 'omega' nao encontrada.");
-}
-
-ASTNode *findFunctionNode(ASTNode *node, const char *name) {
-    if (!node) return NULL;
-
-    if (node->type == NODE_FUNCTION &&
-        strcmp(node->value, name) == 0) return node;
-
-    ASTNode *found = findFunctionNode(node->left, name);
-    if (found) return found;
-
-    return findFunctionNode(node->right, name);
-}
-
+void execute(ASTNode *node);
+void executeStatements(ASTNode *node);
+void executeAssignment(ASTNode *node);
+void executeIfStatement(ASTNode *node);
+void executeReturnStatement(ASTNode *node);
+void executeFunctionCall(ASTNode *node);
+void executeBinaryOp(ASTNode *node);
+void handleFunction(ASTNode *node);
+void handleAddVariable(ASTNode* node);
 
 int main() {
     const char *code = "runic soma { i am the u of 7; i am the v of 2; i am the w of u ascend v; redemption w; }"
-    "runic omega { revenge soma; redemption 0; }";
-    initLexer(code);
-    initInterpreter();
+                        "runic omega { revenge soma; redemption 0; }";
 
+    initLexer(code);
     ASTNode *ast = parse();
+
+    initSymbolTable(&symbolTable);
     printAST(ast, 0);
-    executeProgram(ast);
+    if (ast) execute(ast);
+
+    printSymbolTable(&symbolTable);
 
     return 0;
+}
+
+void execute(ASTNode *node) {
+    switch (node->type) {
+        case NODE_FUNCTION:
+            handleFunction(node);
+            break;
+        case NODE_ASSIGNMENT:
+            executeAssignment(node);
+        break;
+        case NODE_IF:
+            executeIfStatement(node);
+        break;
+        case NODE_RETURN:
+            executeReturnStatement(node);
+        break;
+        case NODE_FUNCTION_CALL:
+            executeFunctionCall(node);
+        break;
+        case NODE_VARIABLE:
+            break;
+        case NODE_BINARY_OP:
+            executeBinaryOp(node);
+        break;
+        default:
+            break;
+    }
+    if (node->next) execute(node->next);
+}
+void handleFunction(ASTNode* node) {
+    Function *existingFunction = getFunction(&symbolTable, node->value);
+
+    if (existingFunction != NULL) {
+        printf("Erro: runico '%s' já equipado.\n", node->value);
+    } else {
+        addFunction(&symbolTable, node->value, NULL);
+        printf("Runico '%s' equipado com sucesso.\n", node->value);
+    }
+    if (node->left) execute(node->left);
+    if (node->right) execute(node->right);
+}
+
+void handleAddVariable(ASTNode *node) {
+}
+
+void executeAssignment(ASTNode *node) {
+    Variable *var = getVariable(&symbolTable, node->value);
+    if (var) {
+        printf("Erro: variável '%s' já existe.\n", node->value);
+        exit(EXIT_FAILURE);
+    }
+
+    if (node->left) addVariable(&symbolTable, node->value, VAR_SCALAR, node->left->value);
+        node->type = NODE_VARIABLE;
+}
+
+
+// Função para executar um bloco de declarações
+void executeStatements(ASTNode *node) {
+    while (node != NULL) {
+        execute(node);
+        node = node->next;
+    }
+}
+
+// Função para executar uma declaração "if"
+void executeIfStatement(ASTNode *node) {
+    ASTNode *condition = node->left;
+    if (condition) {
+        int conditionValue = atoi(condition->value);
+        if (conditionValue) {
+            executeStatements(node->right);
+        }
+    }
+}
+
+// Função para executar uma declaração "return"
+void executeReturnStatement(ASTNode *node) {
+    if (node->left) {
+        // Retorna o valor, sem imprimir
+    }
+}
+
+// Função para executar a chamada de função
+void executeFunctionCall(ASTNode *node) {
+    Function *func = getFunction(&symbolTable, node->value);
+    if (func) {
+        printf("Tratando cahmada de funcao %s\n", node->value);
+    }
+}
+
+// Função para executar operações binárias
+void executeBinaryOp(ASTNode *node) {
+    ASTNode *left = node->left;
+    ASTNode *right = node->right;
+
+    if (left && right) {
+        int leftValue = atoi(left->value);
+        int rightValue = atoi(right->value);
+
+        if (strcmp(getOperator(AO_ADD), node->value) == 0) {
+            setVariable(&symbolTable, node->value, (void*)(leftValue + rightValue));
+        } else if (strcmp(getOperator(AO_MINUS), node->value) == 0) {
+            setVariable(&symbolTable, node->value, (void*)(leftValue - rightValue));
+        } else if (strcmp(getOperator(AO_TIMES), node->value) == 0) {
+            setVariable(&symbolTable, node->value, (void*)(leftValue * rightValue));
+        } else if (strcmp(getOperator(AO_DIVIDE), node->value) == 0) {
+            if (rightValue != 0) {
+                setVariable(&symbolTable, node->value, (void*)(leftValue / rightValue));
+            }
+        }
+    }
 }

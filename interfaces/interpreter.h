@@ -10,12 +10,5 @@
 
 #define MAIN "omega"
 
-typedef struct variable Variable;
-typedef struct function Function;
-typedef struct environment Environment;
-
-void callFunction(const char *name);
-void executeFunction(Function *function);
-void addVariable(const char *name, void *value, TokenType type);
 
 #endif //INTERPRETER_H
