@@ -61,7 +61,8 @@ const Operator operators[] = {
     { AO_DIVIDE, "betrayal" },
     { AO_MODULUS, "remains" },
     { AO_PLUS_PLUS, "power up" },
-    { AO_MINUS_MINUS, "power down" }
+    { AO_MINUS_MINUS, "power down" },
+    { CONCAT, "together" }
 };
 
 
@@ -100,7 +101,8 @@ TokenToOperatorMap operatorMapping[] = {
     {TOKEN_OPERATOR, AO_DIVIDE, "betrayal"},
     {TOKEN_OPERATOR, AO_MODULUS, "remains"},
     {TOKEN_OPERATOR, AO_PLUS_PLUS, "power up"},
-    {TOKEN_OPERATOR, AO_MINUS_MINUS, "power down"}
+    {TOKEN_OPERATOR, AO_MINUS_MINUS, "power down"},
+    {TOKEN_OPERATOR, CONCAT, "together"}
 };
 
 void skipWhitespace();
@@ -309,8 +311,18 @@ int handleSpecialCharacter(const char currentChar, Token *token, int *pos) {
             token->value[0] = '.';
             token->value[1] = '\0';
         break;
+        case ',':
+            token->type = TOKEN_COMMA;
+        token->value[0] = ',';
+        token->value[1] = '\0';
+        break;
+        case '-':
+            token->type = TOKEN_DASH;
+        token->value[0] = '-';
+        token->value[1] = '\0';
+        break;
         default:
-            printf("Lexer error: Unknown character '%c'\n", currentChar);
+            printf("Boy! '%c'.\n", currentChar);
             exit(1);
         return 0;
     }

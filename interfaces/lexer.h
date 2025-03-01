@@ -29,6 +29,8 @@ typedef enum token_type {
     TOKEN_DOUBLE,
     TOKEN_BOOLEAN,
     TOKEN_OPERATOR,
+    TOKEN_COMMA,
+    TOKEN_DASH,
     TOKEN_PERIOD
 } TokenType;
 
@@ -49,6 +51,7 @@ typedef enum operator_type {
     AO_MODULUS,
     AO_PLUS_PLUS,
     AO_MINUS_MINUS,
+    CONCAT,
     OPERATOR_COUNT
 } OperatorType;
 
