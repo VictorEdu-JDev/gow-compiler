@@ -9,4 +9,8 @@ add_executable(gowc main.c
         src/interpreter.c
         src/lexer.c
         src/parser.c
+        src/ast.c
+        interfaces/ast.h
+        src/symbol_table.c
+        interfaces/symbol_table.h
 )
