@@ -11,14 +11,13 @@ ASTNode *parseAssignment();
 ASTNode *parseIfStatement();
 ASTNode *parseReturnStatement();
 ASTNode *parseExpression();
-ASTNode *createExpressionNode();
-NodeType getNodeTypeForToken(TokenType type);
-ASTNode *createNode(NodeType type, const char *value, ASTNode *left, ASTNode *right);
 ASTNode *parseStatements();
+ASTNode *parseFunctionCall();
+ASTNode *parseFactor();
+ASTNode *parseTerm();
 void errorMessage(Token token);
 void advance();
-ASTNode* parseFactor();
-ASTNode* parseTerm();
+void checkSemicolon();
 
 static Token currentToken;
 
@@ -29,127 +28,38 @@ ASTNode *parse() {
 
 void advance() {
     currentToken = getNextToken();
-    printf("Avancando para token: %s\n", currentToken.value);
 }
 
 void errorMessage(Token tp) {
-    fprintf(stderr, "Erro no parser: token inesperado '%s'\n", tp.value);
+    fprintf(stderr, "Garoto! Nao conheco essa língua! Nao compreendo esta runa: '%s'\n", tp.value);
     exit(1);
-}
-
-ASTNode *createNode(NodeType type, const char *value, ASTNode *left, ASTNode *right) {
-    ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
-    node->type = type;
-    if (value) {
-        strncpy(node->value, value, sizeof(node->value) - 1);
-        node->value[sizeof(node->value) - 1] = '\0';
-    } else {
-        node->value[0] = '\0';
-    }
-    node->left = left;
-    node->right = right;
-    return node;
 }
 
 void checkSemicolon() {
     if (currentToken.type == TOKEN_SEMICOLON) {
         advance();
     } else {
-        fprintf(stderr, "Erro no parser: esperado ';' antes de '%s'.\n", currentToken.value);
+        fprintf(stderr, "Garoto! Escreva esta runa ';' antes de '%s'.\n", currentToken.value);
         exit(EXIT_FAILURE);
     }
 }
 
-ASTNode* parseExpression() {
-    ASTNode *left = parseTerm();
-    if (left == NULL) return NULL;
+ASTNode *parseStatements() {
+    ASTNode *firstStmt = NULL;
+    ASTNode *lastStmt = NULL;
 
-    while (currentToken.type == TOKEN_OPERATOR &&
-           (strcmp(currentToken.value, getOperator(AO_ADD)) == 0 ||
-               strcmp(currentToken.value, getOperator(AO_MINUS)) == 0)) {
-            char op[255];
-            strncpy(op, currentToken.value, sizeof(op) - 1);
-            op[sizeof(op) - 1] = '\0';
-            advance();
-
-            ASTNode *right = parseTerm();
-            if (right == NULL) return NULL;
-
-            left = createNode(NODE_OPERATOR, op, left, right);
-    }
-
-    return left;
-}
-
-ASTNode* parseTerm() {
-    ASTNode *left = parseFactor();
-    if (left == NULL) return NULL;
-
-    while (currentToken.type == TOKEN_OPERATOR &&
-           (strcmp(currentToken.value, getOperator(AO_TIMES))) == 0 ||
-               strcmp(currentToken.value, getOperator(AO_DIVIDE)) == 0) {
-        char op[255];
-        strncpy(op, currentToken.value, sizeof(op) - 1);
-        op[sizeof(op) - 1] = '\0';
-        advance();
-
-        ASTNode *right = parseFactor();
-        if (right == NULL) return NULL;
-
-        left = createNode(NODE_OPERATOR, op, left, right);
-           }
-
-    return left;
-}
-
-ASTNode* parseFactor() {
-    if (currentToken.type == TOKEN_NUMBER) {
-        char value[255];
-        strncpy(value, currentToken.value, sizeof(value) - 1);
-        value[sizeof(value) - 1] = '\0';
-        advance();
-        return createNode(NODE_NUMBER, value, NULL, NULL);
-    }
-
-    if (currentToken.type == TOKEN_IDENTIFIER) {
-        char varName[255];
-        strncpy(varName, currentToken.value, sizeof(varName) - 1);
-        varName[sizeof(varName) - 1] = '\0';
-        advance();
-        return createNode(NODE_VARIABLE, varName, NULL, NULL);
-    }
-
-    errorMessage(currentToken);
-    return NULL;
-}
-
-ASTNode *createExpressionNode() {
-    if (currentToken.type == TOKEN_CALL ||
-        currentToken.type == TOKEN_NUMBER ||
-        currentToken.type == TOKEN_STRING ||
-        currentToken.type == TOKEN_FLOAT ||
-        currentToken.type == TOKEN_DOUBLE ||
-        currentToken.type == TOKEN_BOOLEAN ||
-        currentToken.type == TOKEN_IDENTIFIER) {
-
-        NodeType nodeType = getNodeTypeForToken(currentToken.type);
-        ASTNode *node = createNode(nodeType, currentToken.value, NULL, NULL);
-        advance();
-        return node;
+    while (currentToken.type != TOKEN_RBRACE && currentToken.type != TOKEN_EOF) {
+        ASTNode *stmt = parseStatement();
+        if (stmt != NULL) {
+            if (!firstStmt) {
+                firstStmt = stmt;
+            } else {
+                if (lastStmt) lastStmt->next = stmt;
+            }
+            lastStmt = stmt;
         }
-    errorMessage(currentToken);
-    return NULL;
-}
-
-NodeType getNodeTypeForToken(TokenType type) {
-    switch (type) {
-        case TOKEN_IDENTIFIER: return NODE_IDENTIFIER;
-        case TOKEN_FLOAT: return NODE_FLOAT;
-        case TOKEN_DOUBLE: return NODE_DOUBLE;
-        case TOKEN_BOOLEAN: return NODE_BOOLEAN;
-        case TOKEN_CALL: return NODE_CALL;
-        default: return NODE_NUMBER;
     }
+    return firstStmt;
 }
 
 ASTNode *parseStatement() {
@@ -162,30 +72,25 @@ ASTNode *parseStatement() {
             return parseIfStatement();
         case TOKEN_RETURN:
             return parseReturnStatement();
+        case TOKEN_CALL:
+            return parseFunctionCall();
         default:
             errorMessage(currentToken);
-            exit(1);
+            return NULL;
     }
 }
 
 ASTNode *parseFunction() {
     advance();
-
     if (currentToken.type != TOKEN_IDENTIFIER)
         errorMessage(currentToken);
 
-    char funcName[255];
-    strncpy(funcName, currentToken.value, sizeof(funcName) - 1);
-    funcName[sizeof(funcName) - 1] = '\0';
+    char funcName[MAX_STRING_LENGTH];
+    strncpy(funcName, currentToken.value, MAX_STRING_LENGTH - 1);
     advance();
 
-    if (currentToken.type != TOKEN_LBRACE)
-        errorMessage(currentToken);
-
-    ASTNode *params = NULL;
     ASTNode *body = parseBlock();
-
-    return createNode(NODE_FUNCTION, funcName, params, body);
+    return createNode(NODE_FUNCTION, funcName, body, NULL, NULL);
 }
 
 ASTNode *parseAssignment() {
@@ -193,9 +98,8 @@ ASTNode *parseAssignment() {
     if (currentToken.type != TOKEN_IDENTIFIER)
         errorMessage(currentToken);
 
-    char varName[255];
-    strncpy(varName, currentToken.value, sizeof(varName) - 1);
-    varName[sizeof(varName) - 1] = '\0';
+    char varName[MAX_STRING_LENGTH];
+    strncpy(varName, currentToken.value, MAX_STRING_LENGTH - 1);
     advance();
 
     if (currentToken.type != TOKEN_ASSIGN_SIGNAL)
@@ -204,80 +108,87 @@ ASTNode *parseAssignment() {
     advance();
     ASTNode *expr = parseExpression();
     checkSemicolon();
-    return createNode(NODE_ASSIGN, varName, expr, NULL);
+    return createNode(NODE_ASSIGNMENT, varName, expr, NULL, NULL);
 }
 
 ASTNode *parseIfStatement() {
     advance();
     ASTNode *condition = parseExpression();
     ASTNode *body = parseBlock();
-    return createNode(NODE_IF, getKeywordStr(KEYWORD_IF), condition, body);
+    return createNode(NODE_IF, getKeywordStr(KEYWORD_IF), condition, body, NULL);
 }
 
 ASTNode *parseReturnStatement() {
     advance();
     ASTNode *expr = parseExpression();
     checkSemicolon();
-    return createNode(NODE_RETURN, getKeywordStr(KEYWORD_RETURN), expr, NULL);
+    return createNode(NODE_RETURN, getKeywordStr(KEYWORD_RETURN), expr, NULL, NULL);
 }
 
 ASTNode *parseBlock() {
     if (currentToken.type != TOKEN_LBRACE) return NULL;
     advance();
-
     ASTNode *block = parseStatements();
-
-    if (currentToken.type == TOKEN_RBRACE) {
-        advance();
-    } else {
-        errorMessage(currentToken);
-    }
-
+    if (currentToken.type == TOKEN_RBRACE) advance();
+    else errorMessage(currentToken);
     return block;
 }
 
-ASTNode *parseStatements() {
-    ASTNode *firstStmt = NULL;
-    ASTNode *lastStmt = NULL;
-
-    while (currentToken.type != TOKEN_RBRACE &&
-           currentToken.type != TOKEN_EOF) {
-        ASTNode *stmt = parseStatement();
-        if (stmt != NULL) {
-            if (!firstStmt) {
-                firstStmt = stmt;
-            } else if (lastStmt) {
-                lastStmt->right = stmt;
-            }
-            lastStmt = stmt;
-        }
+ASTNode *parseExpression() {
+    ASTNode *left = parseTerm();
+    if (!left) return NULL;
+    while (currentToken.type == TOKEN_OPERATOR) {
+        char op[MAX_STRING_LENGTH];
+        strncpy(op, currentToken.value, MAX_STRING_LENGTH - 1);
+        advance();
+        ASTNode *right = parseTerm();
+        left = createNode(NODE_BINARY_OP, op, left, right, NULL);
     }
-    return firstStmt;
+    return left;
 }
 
-
-void printAST(ASTNode *node, int level) {
-    if (node == NULL) return;
-
-    for (int i = 0; i < level; i++) {
-        printf("    ");
+ASTNode *parseTerm() {
+    ASTNode *left = parseFactor();
+    while (currentToken.type == TOKEN_OPERATOR) {
+        char op[MAX_STRING_LENGTH];
+        strncpy(op, currentToken.value, MAX_STRING_LENGTH - 1);
+        advance();
+        ASTNode *right = parseFactor();
+        left = createNode(NODE_BINARY_OP, op, left, right, NULL);
     }
-    printf("%s\n", node->value);
-
-    if (node->left) {
-        for (int i = 0; i < level; i++) {
-            printf("    ");
-        }
-        printf("L-> ");
-        printAST(node->left, level + 1);
-    }
-
-    if (node->right) {
-        for (int i = 0; i < level; i++) {
-            printf("    ");
-        }
-        printf("R-> ");
-        printAST(node->right, level + 1);
-    }
+    return left;
 }
 
+ASTNode *parseFactor() {
+    if (currentToken.type == TOKEN_NUMBER) {
+        ASTNode *node = createNode(NODE_LITERAL, currentToken.value, NULL, NULL, NULL);
+        advance();
+        return node;
+    }
+    if (currentToken.type == TOKEN_IDENTIFIER) {
+        ASTNode *node = createNode(NODE_VARIABLE, currentToken.value, NULL, NULL, NULL);
+        advance();
+        return node;
+    }
+    errorMessage(currentToken);
+    return NULL;
+}
+
+ASTNode *parseFunctionCall() {
+    advance();
+    char funcName[MAX_STRING_LENGTH];
+    strncpy(funcName, currentToken.value, MAX_STRING_LENGTH - 1);
+    advance();
+
+    ASTNode *args = NULL;
+    ASTNode *lastArg = NULL;
+    while (currentToken.type != TOKEN_SEMICOLON) {
+        ASTNode *arg = parseExpression();
+        if (!arg) break;
+        if (!args) args = arg;
+        else if (lastArg) lastArg->next = arg;
+        lastArg = arg;
+    }
+    checkSemicolon();
+    return createNode(NODE_FUNCTION_CALL, funcName, args, NULL, NULL);
+}
