@@ -136,7 +136,6 @@ ASTNode *parseBlock() {
 
 ASTNode *parseExpression() {
     ASTNode *left = parseTerm();
-    if (!left) return NULL;
     while (currentToken.type == TOKEN_OPERATOR) {
         char op[MAX_STRING_LENGTH];
         strncpy(op, currentToken.value, MAX_STRING_LENGTH - 1);
