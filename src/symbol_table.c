@@ -6,12 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast.h"
+
 void initSymbolTable(SymbolTable *table) {
     table->var_count = 0;
     table->func_count = 0;
 }
 
-int addVariable(SymbolTable *table, const char *name, VarType type, void *value) {
+int addVariable(SymbolTable *table, const char *name, VarType type, const char *value) {
     if (table->var_count >= MAX_VARIABLES) {
         printf("Erro: limite de variáveis atingido.\n");
         return -1;
@@ -29,10 +31,10 @@ int addVariable(SymbolTable *table, const char *name, VarType type, void *value)
             if (value) {
                 if (strchr(valStr, '.')) {
                     var->value.scalarValue = atof(valStr);
-                    printf("Variável '%s' armazenada como DOUBLE: %f\n", name, var->value.scalarValue);
+                    printf("Variavel '%s' armazenada como DOUBLE: %f\n", name, var->value.scalarValue);
                 } else {
                     var->value.scalarValue = atoi(valStr);
-                    printf("Variável '%s' armazenada como INT: %d\n", name, (int)var->value.scalarValue);
+                    printf("Variavel '%s' armazenada como INT: %d\n", name, (int)var->value.scalarValue);
                 }
             }
             break;
@@ -49,16 +51,17 @@ int addVariable(SymbolTable *table, const char *name, VarType type, void *value)
     return 0;
 }
 
-int addFunction(SymbolTable *table, const char *name, void (*funcPointer)()) {
+int addFunction(SymbolTable *table, ASTNode *node) {
     if (table->func_count >= MAX_FUNCTIONS) {
         printf("Erro: limite de funções atingido.\n");
         return -1;
     }
 
     Function *func = &table->functions[table->func_count];
-    strncpy(func->name, name, MAX_NAME_LENGTH - 1);
+    strncpy(func->name, node->value, MAX_NAME_LENGTH - 1);
     func->name[MAX_NAME_LENGTH - 1] = '\0';
-    func->funcPointer = funcPointer;
+    func->parameters = node->right;
+    func->body = node->left;
 
     table->func_count++;
     return 0;
@@ -85,7 +88,7 @@ Function* getFunction(SymbolTable *table, const char *name) {
 void setVariable(SymbolTable *table, const char *name, void *value) {
     Variable *var = getVariable(table, name);
     if (var == NULL) {
-        printf("Erro: variável '%s' não encontrada.\n", name);
+        printf("Erro: variavel '%s' nao encontrada.\n", name);
         return;
     }
 
