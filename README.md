@@ -1,6 +1,6 @@
 # GOW Language - God of War Inspired Programming Language
 
-GOW é uma linguagem esotérica inspirada no jogo *God of War*. Os comandos são baseados em falas, eventos e referências do jogo. Este documento explica a sintaxe, os comandos, as estruturas de controle e como compilar/executar um programa em GOW.
+GOW é uma linguagem esotérica inspirada no jogo *God of War*. Os comandos são baseados em falas, eventos e referências do jogo. Este documento explica a sintaxe, os comandos, as estruturas de controle e como interpretar/executar um programa em GOW.
 
 ## Índice
 
