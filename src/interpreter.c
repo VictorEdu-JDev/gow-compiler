@@ -23,8 +23,8 @@ ASTNode *findFunction(ASTNode *node, const char *name);
 void registerFunctions(ASTNode *node);
 
 int main() {
-    const char *code = "runic soma { i am the u of 7; i am the v of 2; i am the w of u betrayal v; redemption w; }"
-                        "runic omega { revenge soma; redemption 0; }";
+    const char *code = "runic testeFuncao { i am the var1 of 300; i am the var2 of 187; i am the var3 of var1 betrayal var2; redemption var3; }"
+                        "runic omega { revenge testeFuncao; redemption 0; }";
 
     initLexer(code);
     ASTNode *ast = parse();
@@ -157,24 +157,18 @@ void executeReturnStatement(ASTNode *node) {
 void executeFunctionCall(ASTNode *node) {
     Function *func = getFunction(&symbolTable, node->value);
     if (func) {
-        SymbolTable localScope;
-        initSymbolTable(&localScope);
-
         ASTNode *paramNode = func->parameters;
         ASTNode *argNode = node->right;
 
         while (paramNode && argNode) {
             Variable var;
             strcpy(var.name, paramNode->value);
-            addVariable(&localScope, var.name, node->type, node);
-
+            addVariable(&symbolTable, var.name, node->type, node->value);
             paramNode = paramNode->next;
             argNode = argNode->next;
         }
-        printSymbolTable(&localScope);
 
-        execute(func->body, &localScope);
-        freeSymbolTable(&localScope);
+        execute(func->body, &symbolTable);
     }
 }
 
