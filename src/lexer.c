@@ -36,7 +36,7 @@ KeywordMap keywords[] = {
     { KEYWORD_OF, "of" },
     { KEYWORD_IF, "trial" },
     { KEYWORD_ELSE, "fate" },
-    { KEYWORD_ELSEIF, "fate else" },
+    { KEYWORD_ELSEIF, "fate again" },
     { KEYWORD_TRUE, "yes" },
     { KEYWORD_FALSE, "no" },
     { KEYWORD_WHILE, "hyperion ram" },
