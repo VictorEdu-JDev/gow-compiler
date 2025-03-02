@@ -19,16 +19,20 @@ typedef enum {
     NODE_FUNCTION,
     NODE_FUNCTION_CALL,
     NODE_RETURN,
-    NODE_BLOCK
+    NODE_BLOCK,
+    NODE_PARAM,
+    NODE_INTERN_FUNC
 } ASTNodeType;
 
-typedef struct ASTNode {
+typedef struct ast_node ASTNode;
+
+struct ast_node {
     ASTNodeType type;
     char value[MAX_STRING_LENGTH];
-    struct ASTNode *left;
-    struct ASTNode *right;
-    struct ASTNode *next;
-} ASTNode;
+    ASTNode *left;
+    ASTNode *right;
+    ASTNode *next;
+};
 
 ASTNode* createNode(ASTNodeType type,
     const char *value,
