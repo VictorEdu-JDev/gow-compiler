@@ -142,10 +142,14 @@ int main() {
 ```
 # 6 Compilando e executando um programa em GOW
 ## 6.1 Escreva o Código GOW
-- Certifique-se que o compilador de C está instalado;
-- Baixe o tradutor GOW-C que está na última seção da documentação;
-- Use o Tradutor GoWC;
-- Execute o tradutor.
+- Certifique-se que o CMake ou GCC está instalado e está nas variáveis de ambiente
+do seu sistema;
+5
+- Faça um fork ou clone do repositório para sua máquina do tradutor GoWC que esta
+na última seção da documentação;
+- Crie um código fonte GoW com a extensão ".gow";
+- Execute o tradutor gerado pela compilação do CMake a partir do terminal usando
+./gowc teste.gow.
 
 # 7 Executando um código em GoW
 ### 99 garrafas de cerveja em GOW:
