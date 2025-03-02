@@ -22,15 +22,15 @@ char *readFile(const char *filename) {
     return buffer;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s <file.gow>\n", argv[0]);
-        return 1;
-    }
-
-    char *source = readFile(argv[1]);
-    initLexer(source);
-    parse();
-    free(source);
-    return 0;
-}
+// int main(int argc, char *argv[]) {
+//     if (argc != 2) {
+//         printf("Usage: %s <file.gow>\n", argv[0]);
+//         return 1;
+//     }
+//
+//     char *source = readFile(argv[1]);
+//     initLexer(source);
+//     parse();
+//     free(source);
+//     return 0;
+// }
