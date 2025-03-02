@@ -3,13 +3,23 @@ runic face me - message {
     revenge show yourself message together endline;
 }
 
-runic read the words - prompt {
-    revenge show yourself prompt;
+runic read the words - userinput {
+    revenge face me userinput;
     i am the userinput of read_line;
     redemption userinput;
 }
 
-runic omega {
+runic presentation {
+    revenge face me "What´s your name?";
+    i am the name of revenge read the words;
+    revenge face me "My name is " together name together "!";
+}
+
+runic hello {
+    revenge face me "Hello, World!";
+}
+
+runic bottles {
     cyclone of chaos i am the bottles of 99, bottles rage of sparta 0, bottles power down {
         revenge face me bottles together " garrafas de cerveja na parede, " together bottles together " garrafas de cerveja";
         revenge face me "Pegue uma e passe adiante, " together bottles fall 1 together " garrafas de cerveja na parede";
@@ -17,4 +27,10 @@ runic omega {
 
     revenge face me "Nenhuma garrafa de cerveja na parede, nenhuma garrafa de cerveja";
     revenge face me "Va ate a loja e compre mais 99 garrafas de cerveja na parede";
+}
+
+runic omega {
+    revenge presentation;
+    revenge bottles;
+    revenge hello;
 }
