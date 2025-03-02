@@ -3,9 +3,8 @@
 #define SYMBOL_TABLE_H
 
 #include "ast.h"
+#include "interpreter.h"
 
-#define MAX_VARIABLES 100
-#define MAX_FUNCTIONS 50
 #define MAX_NAME_LENGTH 255
 #define MAX_PARAMS 5
 
